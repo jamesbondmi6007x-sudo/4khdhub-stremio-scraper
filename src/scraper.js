@@ -33,17 +33,17 @@ async function searchAndScrape(title) {
         let movieUrl = null;
         $('a').each((i, el) => {
             const href = $(el).attr('href');
-            if (href && href.includes(BASE_URL) && href.includes('-movie-') && href.toLowerCase().includes(title.toLowerCase().replace(/[^a-z0-9]/g, '-'))) {
-                movieUrl = href;
+            if (href && href.includes('-movie-') && href.toLowerCase().includes(title.toLowerCase().replace(/[^a-z0-9]/g, '-'))) {
+                movieUrl = href.startsWith('http') ? href : BASE_URL + href;
                 return false; // break
             }
         });
 
         // Fallback: Just grab the first search result link
         if (!movieUrl) {
-            const firstResult = $('h3 a').first().attr('href');
-            if (firstResult && firstResult.includes(BASE_URL)) {
-                movieUrl = firstResult;
+            const firstResult = $('h3 a').first().attr('href') || $('article a').first().attr('href') || $('.post-item a').first().attr('href');
+            if (firstResult) {
+                movieUrl = firstResult.startsWith('http') ? firstResult : BASE_URL + firstResult;
             }
         }
 
