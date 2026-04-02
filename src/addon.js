@@ -37,6 +37,18 @@ builder.defineStreamHandler(async ({ type, id }) => {
     // 2. Search and Scrape 4KHDHub
     const streams = await searchAndScrape(title, type, season, episode);
 
+    if (!streams || streams.length === 0) {
+        return {
+            streams: [
+                {
+                    name: "DEBUG INFO",
+                    title: `Failed to find links.\nTitle parsed: ${title}\nType: ${type}`,
+                    url: "http://localhost/"
+                }
+            ]
+        };
+    }
+
     return { streams };
 });
 
