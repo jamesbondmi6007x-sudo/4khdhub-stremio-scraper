@@ -4,6 +4,51 @@ const cheerio = require('cheerio');
 const BASE_URL = 'https://4khdhub.dad';
 const CINEMETA_URL = 'https://v3-cinemeta.strem.io/meta';
 
+async function hubcloudResolver(hubCloudUrl) {
+    try {
+        console.log("Resolving HubCloud Link:", hubCloudUrl);
+        const res1 = await axios.get(hubCloudUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const $1 = cheerio.load(res1.data);
+        
+        let redirectUrl = null;
+        $1('script').each((i, el) => {
+            const script = $1(el).html();
+            if (script && script.includes("var url = '")) {
+                const match = script.match(/var url = '(.*?)';/);
+                if (match && match[1]) {
+                    redirectUrl = match[1];
+                }
+            }
+        });
+
+        if (!redirectUrl) {
+            console.log("No internal script redirect found for:", hubCloudUrl);
+            return null;
+        }
+
+        console.log("Redirect URL:", redirectUrl);
+        const res2 = await axios.get(redirectUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const $2 = cheerio.load(res2.data);
+        
+        let directStreamingLink = null;
+        $2('a.btn').each((i, el) => {
+            const href = $2(el).attr('href');
+            const text = $2(el).text().toLowerCase();
+            // User requested FSL server or PixelServer specifically
+            if (text.includes('fsl') || text.includes('pixel')) {
+                 directStreamingLink = href;
+            } else if (text.includes('download') && !text.includes('telegram') && !text.includes('hubdrive') && !directStreamingLink) {
+                 directStreamingLink = href; // fallback logic
+            }
+        });
+        console.log("Resolved Direct Link:", directStreamingLink);
+        return directStreamingLink;
+    } catch (e) {
+        console.error("Resolver error:", e.message);
+        return null;
+    }
+}
+
 async function getTitleFromCinemeta(type, id) {
     try {
         // id is usually in the format tt1234567
@@ -95,16 +140,28 @@ async function searchAndScrape(title, type = 'movie', season = null, episode = n
 
             if (el.tagName === 'a') {
                 const href = $$(el).attr('href');
-                if (href && href.includes('gadgetsweb.xyz')) {
+                if (href && (href.includes('gadgetsweb.xyz') || href.includes('shikshakdaak.com') || href.includes('hubcloud.club') || href.includes('carnewz.site'))) {
                     const hosterName = text || 'Ext Link';
                     streams.push({
                         name: `4KHDHub\n${hosterName}`,
                         title: currentInfo,
-                        externalUrl: href
+                        externalUrl: href,
+                        isResolverTarget: href.includes('shikshakdaak.com') || href.includes('hubcloud.club') || href.includes('carnewz.site')
                     });
                 }
             }
         });
+
+        // Resolve Direct URLs for targeted links
+        for (let s of streams) {
+            if (s.isResolverTarget) {
+                const directUrl = await hubcloudResolver(s.externalUrl);
+                if (directUrl) {
+                    s.url = directUrl; // If we get the direct stream link, we serve it directly to the player!
+                    delete s.externalUrl;
+                }
+            }
+        }
 
         // Return unique streams (sometimes duplicate buttons exist)
         const uniqueStreams = [];
