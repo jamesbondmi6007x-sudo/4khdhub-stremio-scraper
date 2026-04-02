@@ -7,11 +7,12 @@ const addonInterface = require('./addon');
 const app = express();
 app.use(cors());
 
-// Serve the static configuration page
+// Serve Configure UI
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Set up the Stremio Addon routes (/manifest.json, /catalog/..., /stream/...)
 const addonRouter = getRouter(addonInterface);
+
+// Use SDK router for Stremio manifest and streams
 app.use('/', addonRouter);
 
 const PORT = process.env.PORT || 7000;
