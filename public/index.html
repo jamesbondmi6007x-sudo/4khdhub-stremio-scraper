@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4KHDHub | Stremio Addon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f0141e;
+            --bg: #111116;
+            --text: #e1e1e1;
+            --card-bg: #1c1c24;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% -20%, #2a1618 0%, var(--bg) 60%);
+        }
+        .container {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        p {
+            line-height: 1.6;
+            color: #a0a0a0;
+            margin-bottom: 30px;
+        }
+        .install-btn {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(240, 20, 30, 0.4);
+        }
+        .install-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 20, 30, 0.6);
+        }
+        .features {
+            text-align: left;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        .features li {
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>4KHDHub Scraper</h1>
+        <p>A Stremio addon that scrapes 4khdhub.dad for high-quality movies and series links.</p>
+        
+        <a href="#" id="installLink" class="install-btn">Install to Stremio</a>
+
+        <div class="features">
+            <h3>Features:</h3>
+            <ul>
+                <li>🎬 Fetches 1080p, 4K, HDR, and DV links</li>
+                <li>🔗 Provides direct external URLs to HubCloud/HubDrive</li>
+                <li>⚡ Fast and lightweight</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Dynamically set Stremio protocol based on current hostname
+        const installBtn = document.getElementById('installLink');
+        const manifestUrl = window.location.href.replace('https://', '').replace('http://', '') + 'manifest.json';
+        installBtn.href = `stremio://${manifestUrl}`;
+    </script>
+</body>
+</html>
