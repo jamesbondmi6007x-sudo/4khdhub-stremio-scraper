@@ -86,15 +86,35 @@
                 <li>🎬 Fetches 1080p, 4K, HDR, and DV links</li>
                 <li>🔗 Provides direct external URLs to HubCloud/HubDrive</li>
                 <li>⚡ Fast and lightweight</li>
+                <li>🛡️ MediaFlow Proxy support to bypass Cloudflare</li>
             </ul>
+        </div>
+
+        <div style="margin-top: 20px; text-align: left;">
+            <label for="mediaflowProxy" style="display: block; margin-bottom: 5px; color: #ccc;">MediaFlow Proxy URL (Optional):</label>
+            <input type="text" id="mediaflowProxy" placeholder="http://127.0.0.1:8888" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #333; background: #222; color: #fff; box-sizing: border-box;">
+            <small style="color: #888; display: block; margin-top: 5px;">Used to bypass Cloudflare on gadgetsweb.xyz links.</small>
         </div>
     </div>
 
     <script>
-        // Dynamically set Stremio protocol based on current hostname
-        const installBtn = document.getElementById('installLink');
-        const manifestUrl = window.location.href.replace('https://', '').replace('http://', '') + 'manifest.json';
-        installBtn.href = `stremio://${manifestUrl}`;
+        function updateInstallLink() {
+            const proxy = document.getElementById('mediaflowProxy').value.trim();
+            const config = {};
+            if (proxy) config.mediaflow = proxy;
+            
+            let configStr = '';
+            if (Object.keys(config).length > 0) {
+                configStr = btoa(JSON.stringify(config)) + '/';
+            }
+
+            const installBtn = document.getElementById('installLink');
+            const host = window.location.host;
+            installBtn.href = `stremio://${host}/${configStr}manifest.json`;
+        }
+
+        document.getElementById('mediaflowProxy').addEventListener('input', updateInstallLink);
+        updateInstallLink(); // Initial call
     </script>
 </body>
 </html>

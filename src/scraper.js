@@ -4,10 +4,11 @@ const cheerio = require('cheerio');
 const BASE_URL = 'https://4khdhub.dad';
 const CINEMETA_URL = 'https://v3-cinemeta.strem.io/meta';
 
-async function hubcloudResolver(hubCloudUrl) {
+async function hubcloudResolver(hubCloudUrl, proxyConfig) {
     try {
-        console.log("Resolving HubCloud Link:", hubCloudUrl);
-        const res1 = await axios.get(hubCloudUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        console.log("Resolving HubCloud Link:", hubCloudUrl, "Proxy:", proxyConfig);
+        const targetUrl = proxyConfig ? `${proxyConfig}/proxy/d?d=${encodeURIComponent(hubCloudUrl)}` : hubCloudUrl;
+        const res1 = await axios.get(targetUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, validateStatus: () => true });
         const $1 = cheerio.load(res1.data);
         
         let redirectUrl = null;
@@ -21,14 +22,29 @@ async function hubcloudResolver(hubCloudUrl) {
             }
         });
 
+        if (res1.status === 301 || res1.status === 302) {
+            redirectUrl = res1.headers['location'];
+        }
+
         if (!redirectUrl) {
-            console.log("No internal script redirect found for:", hubCloudUrl);
+            console.log("No internal script or HTTP redirect found for:", hubCloudUrl);
             return null;
         }
 
         console.log("Redirect URL:", redirectUrl);
-        const res2 = await axios.get(redirectUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const $2 = cheerio.load(res2.data);
+        const targetUrl2 = proxyConfig ? `${proxyConfig}/proxy/d?d=${encodeURIComponent(redirectUrl)}` : redirectUrl;
+        const res2 = await axios.get(targetUrl2, { headers: { 'User-Agent': 'Mozilla/5.0' }, validateStatus: () => true });
+        
+        // Handle double redirection (frequent via proxy)
+        let finalHtml = res2.data;
+        if (res2.status === 301 || res2.status === 302) {
+            const loc2 = res2.headers['location'];
+            const targetUrl3 = proxyConfig ? `${proxyConfig}/proxy/d?d=${encodeURIComponent(loc2)}` : loc2;
+            const res3 = await axios.get(targetUrl3, { headers: { 'User-Agent': 'Mozilla/5.0' }, validateStatus: () => true });
+            finalHtml = res3.data;
+        }
+
+        const $2 = cheerio.load(finalHtml);
         
         let directStreamingLink = null;
         $2('a.btn').each((i, el) => {
@@ -62,7 +78,7 @@ async function getTitleFromCinemeta(type, id) {
     }
 }
 
-async function searchAndScrape(title, type = 'movie', season = null, episode = null) {
+async function searchAndScrape(title, type = 'movie', season = null, episode = null, proxyConfig = null) {
     try {
         let searchQuery = title;
         // If it's a specific episode, some sites use "S01E05" or "EP05" formats.
@@ -146,7 +162,7 @@ async function searchAndScrape(title, type = 'movie', season = null, episode = n
                         name: `4KHDHub\n${hosterName}`,
                         title: currentInfo,
                         externalUrl: href,
-                        isResolverTarget: href.includes('shikshakdaak.com') || href.includes('hubcloud.club') || href.includes('carnewz.site')
+                        isResolverTarget: href.includes('shikshakdaak.com') || href.includes('hubcloud.club') || href.includes('carnewz.site') || (href.includes('gadgetsweb.xyz') && proxyConfig)
                     });
                 }
             }
@@ -155,9 +171,9 @@ async function searchAndScrape(title, type = 'movie', season = null, episode = n
         // Resolve Direct URLs for targeted links
         for (let s of streams) {
             if (s.isResolverTarget) {
-                const directUrl = await hubcloudResolver(s.externalUrl);
+                const directUrl = await hubcloudResolver(s.externalUrl, proxyConfig);
                 if (directUrl) {
-                    s.url = directUrl; // If we get the direct stream link, we serve it directly to the player!
+                    s.url = proxyConfig ? `${proxyConfig}/proxy/d?d=${encodeURIComponent(directUrl)}` : directUrl; // If we get the direct stream link, we serve it directly to the player!
                     delete s.externalUrl;
                 }
             }
