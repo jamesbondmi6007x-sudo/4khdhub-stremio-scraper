@@ -17,10 +17,18 @@ async function getTitleFromCinemeta(type, id) {
     }
 }
 
-async function searchAndScrape(title) {
+async function searchAndScrape(title, type = 'movie', season = null, episode = null) {
     try {
-        console.log(`Searching 4KHDHub for: ${title}`);
-        const searchUrl = `${BASE_URL}/?s=${encodeURIComponent(title)}`;
+        let searchQuery = title;
+        // If it's a specific episode, some sites use "S01E05" or "EP05" formats.
+        if (type === 'series' && season && episode) {
+            // zero pad episode, e.g. 1 -> 01
+            const epPad = episode.padStart(2, '0');
+            searchQuery = `${title} EP${epPad}`;
+        }
+        
+        console.log(`Searching 4KHDHub for: ${searchQuery}`);
+        const searchUrl = `${BASE_URL}/?s=${encodeURIComponent(searchQuery)}`;
         const searchRes = await axios.get(searchUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
         });
@@ -33,9 +41,17 @@ async function searchAndScrape(title) {
         let movieUrl = null;
         $('a').each((i, el) => {
             const href = $(el).attr('href');
-            if (href && href.includes('-movie-') && href.toLowerCase().includes(title.toLowerCase().replace(/[^a-z0-9]/g, '-'))) {
-                movieUrl = href.startsWith('http') ? href : BASE_URL + href;
-                return false; // break
+            if (href && (href.includes('-movie-') || href.includes('-series-') || href.includes('-ep')) && href.toLowerCase().includes(title.toLowerCase().replace(/[^a-z0-9]/g, '-'))) {
+                if (type === 'series' && episode) {
+                    const epPad = episode.padStart(2, '0');
+                    if (href.includes(`-ep${epPad}-`) || $(el).text().includes(`EP${epPad}`)) {
+                        movieUrl = href.startsWith('http') ? href : BASE_URL + href;
+                        return false;
+                    }
+                } else {
+                    movieUrl = href.startsWith('http') ? href : BASE_URL + href;
+                    return false; // break
+                }
             }
         });
 

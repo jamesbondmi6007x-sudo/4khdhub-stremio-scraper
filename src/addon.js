@@ -24,10 +24,18 @@ builder.defineStreamHandler(async ({ type, id }) => {
         return { streams: [] };
     }
 
-    console.log(`Resolved ID ${id} to Title: ${title}`);
+    // Extract season and episode if it's a series (tt12345:1:2)
+    let season, episode;
+    if (type === 'series') {
+        const parts = id.split(':');
+        if (parts.length === 3) {
+            season = parts[1];
+            episode = parts[2];
+        }
+    }
 
     // 2. Search and Scrape 4KHDHub
-    const streams = await searchAndScrape(title);
+    const streams = await searchAndScrape(title, type, season, episode);
 
     return { streams };
 });
